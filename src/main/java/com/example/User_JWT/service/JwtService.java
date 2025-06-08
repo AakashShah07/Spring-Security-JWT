@@ -1,11 +1,15 @@
 package com.example.User_JWT.service;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 @Service
@@ -30,6 +34,31 @@ public class JwtService {
         return  generateToken((new HashMap<>(), userDetails);
     }
 
-//    public String generateToke
+    public String generateToke(Map<String, Object> extractClaims, UserDetails userDetails){
+        return  buildToken(extractClaims, userDetails, jwtExpiration);
+    }
+
+    public long getJwtExpiration(){
+        return  jwtExpiration;
+    }
+
+    private String buildToken(
+            Map<String, Object> extraClaims,
+            UserDetails userDetails,
+            long expiration
+    ){
+        return Jwts.builder()
+                .setClaims(extraClaims)
+                .setSubject((userDetails.getUsername()))
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration((new Date(System.currentTimeMillis()+expiration)))
+                .signWith(getSignKeys(), SignatureAlgorithm.ES256)
+                .compact();
+    }
+
+    public boolean isTokenValid(String token, UserDetails userDetails){
+        final  String username = extractUsername(token);
+        return (username.equals(userDetails.getUsername()));
+    }
 
 }
