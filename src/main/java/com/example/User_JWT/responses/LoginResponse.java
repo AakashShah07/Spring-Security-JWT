@@ -1,16 +1,14 @@
 package com.example.User_JWT.responses;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
-@Getter
-@Setter
-@RequiredArgsConstructor
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class LoginResponse {
 
     private String token ;
-    private long expiresIn ;
+    private long expiration ;
 
 
 }

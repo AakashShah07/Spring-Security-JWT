@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
-@Document(collation = "users")
+@Document(collection = "users")
 @Getter
 @Setter
 public class User implements UserDetails {
