@@ -1,12 +1,11 @@
 package com.example.User_JWT.service;
 
-import com.example.User_JWT.dto.LoginUserDTO;
-import com.example.User_JWT.dto.RegisterUserDTO;
-import com.example.User_JWT.dto.VerifyUserDTO;
+import com.example.User_JWT.dto.*;
 import com.example.User_JWT.model.User;
 import com.example.User_JWT.repository.UserRepository;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,16 +28,33 @@ public class AuthenticationService {
     private final EmailService emailService;
 
 
-    public User signup(RegisterUserDTO input)
+    public GenericApiResponse<Object> signup(RegisterUserDTO input)
     {
-        User user = new User(input.getUsername(), input.getEmail(), passwordEncoder.encode(input.getPassword()));
-        user.setVerificationCode(generateVerificationCode());
+        try {
+            User user = new User(input.getUsername(), input.getEmail(), passwordEncoder.encode(input.getPassword()));
+            user.setVerificationCode(generateVerificationCode());
 
-        user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
-        user.setEnabled(false);
-        sendVerificationCode(user);
-        return userRepository.save(user);
+            user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
+            user.setEnabled(false);
+            sendVerificationCode(user);
+            User savedUser = userRepository.save(user);
+            UserResponseDTO responseDTO = UserResponseDTO.builder()
+                    .id(savedUser.getId())
+                    .username(savedUser.getUsername())
+                    .email(savedUser.getEmail())
+                    .build();
 
+            return GenericApiResponse.builder()
+                    .status(200)
+                    .message("User registered successfully. Verification code sent.")
+                    .Data(responseDTO)
+                    .build();
+
+        } catch (Exception exception) {
+
+            return buildResponse("Failed", HttpStatus.INTERNAL_SERVER_ERROR.value(), exception.getMessage());
+
+        }
     }
 
     public User authenticate(LoginUserDTO input){
@@ -61,13 +77,17 @@ public class AuthenticationService {
     }
 
 
-    public void verifyUser(VerifyUserDTO input){
+    public GenericApiResponse<String> verifyUser(VerifyUserDTO input){
 
         Optional<User> optionalUser = userRepository.findByEmail(input.getEmail());
         if(optionalUser.isPresent()) {
             User user = optionalUser.get();
             if(user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())){
-                throw new RuntimeException("Verification code has expired");
+                return GenericApiResponse.<String>builder()
+                        .status(400)
+                        .message("Verification code has expired")
+                        .Data(null)
+                        .build();
             }
 
             if(user.getVerificationCode().equals(input.getVerificationCode())){
@@ -75,29 +95,56 @@ public class AuthenticationService {
                 user.setVerificationCode(null);
                 user.setVerificationCodeExpiresAt(null);
                 userRepository.save(user);
+
+                return GenericApiResponse.<String>builder()
+                        .status(200)
+                        .message("User verified successfully")
+                        .Data("Verified")
+                        .build();
             }  else {
-                throw  new RuntimeException("Invalid verification code");
+                return GenericApiResponse.<String>builder()
+                        .status(400)
+                        .message("Invalid verification code")
+                        .Data(null)
+                        .build();
             }
         }  else {
-            throw  new RuntimeException("User not found");
+            return GenericApiResponse.<String>builder()
+                    .status(404)
+                    .message("User not found")
+                    .Data(null)
+                    .build();
         }
 
     }
 
-    public  void resendVerificationCode(String email){
+    public  GenericApiResponse<String> resendVerificationCode(String email){
 
         Optional<User> optionalUser = userRepository.findByEmail(email) ;
         if (optionalUser.isPresent()){
                 User user = optionalUser.get();
                 if(user.isEnabled()){
-                    throw new RuntimeException("Account is already verified");
+                    return GenericApiResponse.<String>builder()
+                            .status(400)
+                            .message("Account is already verified")
+                            .Data(null)
+                            .build();
                 }
                 user.setVerificationCode(generateVerificationCode());
                 user.setVerificationCodeExpiresAt(LocalDateTime.now().plusHours(1));
                 sendVerificationCode(user);
                 userRepository.save(user);
+            return GenericApiResponse.<String>builder()
+                    .status(200)
+                    .message("Verification code sent successfully")
+                    .Data("Code Sent")
+                    .build();
             }  else {
-                throw new RuntimeException("User not found in repo");
+            return GenericApiResponse.<String>builder()
+                    .status(404)
+                    .message("User not found")
+                    .Data(null)
+                    .build();
         }
 
 
@@ -136,5 +183,13 @@ public class AuthenticationService {
         return  String.valueOf(code);
     }
 
+    private GenericApiResponse<Object> buildResponse(String message, int status, Object data) {
+
+        return GenericApiResponse.builder()
+                .message(message)
+                .Data(data)
+                .status(status)
+                .build();
+    }
 
 }

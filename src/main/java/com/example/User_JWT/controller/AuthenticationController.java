@@ -1,6 +1,7 @@
 package com.example.User_JWT.controller;
 
 
+import com.example.User_JWT.dto.GenericApiResponse;
 import com.example.User_JWT.dto.LoginUserDTO;
 import com.example.User_JWT.dto.RegisterUserDTO;
 import com.example.User_JWT.dto.VerifyUserDTO;
@@ -21,38 +22,31 @@ public class AuthenticationController {
     private final AuthenticationService authenticationService ;
 
     @PostMapping("/signup")
-    public ResponseEntity<User> registerUser(@RequestBody RegisterUserDTO registerUserDTO){
-        User registerUser = authenticationService.signup(registerUserDTO);
-        return ResponseEntity.ok(registerUser);
+    public ResponseEntity<GenericApiResponse<Object>> registerUser(@RequestBody RegisterUserDTO registerUserDTO){
+        return ResponseEntity.ok(authenticationService.signup(registerUserDTO));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> authenticate(@RequestBody LoginUserDTO loginUserDTO){
+    public ResponseEntity<GenericApiResponse<LoginResponse>> authenticate(@RequestBody LoginUserDTO loginUserDTO){
         User authUSer = authenticationService.authenticate(loginUserDTO);
         String jwtToken = jwtService.generateToken(authUSer);
         LoginResponse loginResponse = new LoginResponse(jwtToken, jwtService.getJwtExpiration());
-        return ResponseEntity.ok(loginResponse);
+        GenericApiResponse<LoginResponse> response = GenericApiResponse.<LoginResponse>builder()
+                .status(200)
+                .message("Login Successful")
+                .Data(loginResponse)
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/verify")
-    public  ResponseEntity<?> verifyUser(@RequestBody VerifyUserDTO verifyUserDTO){
-        try{
-            authenticationService.verifyUser(verifyUserDTO);
-            return ResponseEntity.ok("Account Verified Successfully");
-        }
-        catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public  ResponseEntity<GenericApiResponse<String>> verifyUser(@RequestBody VerifyUserDTO verifyUserDTO){
+            return ResponseEntity.ok(authenticationService.verifyUser(verifyUserDTO));
     }
 
     @PostMapping("/resend")
-    public ResponseEntity<?> resendVerificationCode(@RequestParam String email){
-        try{
-            authenticationService.resendVerificationCode(email);
-            return ResponseEntity.ok("Verification code send");
-        } catch (RuntimeException e){
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<GenericApiResponse<String>> resendVerificationCode(@RequestParam String email){
+            return ResponseEntity.ok(authenticationService.resendVerificationCode(email));
     }
 
 
