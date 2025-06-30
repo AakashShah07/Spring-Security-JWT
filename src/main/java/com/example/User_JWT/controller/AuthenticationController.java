@@ -39,6 +39,7 @@ public class AuthenticationController {
         return ResponseEntity.ok(response);
     }
 
+    //Verify using email Token
     @PostMapping("/verify")
     public  ResponseEntity<GenericApiResponse<String>> verifyUser(@RequestBody VerifyUserDTO verifyUserDTO){
             return ResponseEntity.ok(authenticationService.verifyUser(verifyUserDTO));
