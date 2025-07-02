@@ -10,12 +10,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.Random;
 
@@ -52,10 +54,6 @@ public class AuthenticationService {
                     .role(Role.USER)
                     .build();
 
-//            user.setVerificationCode(generateVerificationCode());
-//
-//            user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
-//            user.setEnabled(false);
             sendVerificationCode(user);
             User savedUser = userRepository.save(user);
 
@@ -78,35 +76,64 @@ public class AuthenticationService {
         }
     }
 
-    public GenericApiResponse<LoginResponse> authenticate(LoginUserDTO input){
-        User user = userRepository.findByEmail(input.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+
+//    TODO: Add Captcha and rate limiting
+    public GenericApiResponse<Object> authenticate(LoginUserDTO input){
+        try{
+            Optional<User> optionalUser = userRepository.findByEmail(input.getEmail());
 
 
-        if (!user.isEnabled()){
-            throw new RuntimeException("Account not verified, Please verify you account");
+            if (optionalUser.isEmpty()) {
+
+            Thread.sleep(1000);
+            return invalidCredentialsResponse();
+            }
+
+            User user = optionalUser.get();
+
+            if (!user.isEnabled()) {
+                return GenericApiResponse.<Object>builder()
+                        .status(401)
+                        .message("Account not verified. Please verify your account.")
+                        .build();
+            }
+
+            try {
+                authenticationManager.authenticate(
+                        new UsernamePasswordAuthenticationToken(
+                                input.getEmail(),
+                                input.getPassword()
+                        )
+                );
+            } catch (BadCredentialsException ex) {
+                return invalidCredentialsResponse();
+            }
+            String token = jwtService.generateToken(user);
+            LoginResponse response = new LoginResponse(token, jwtService.getJwtExpiration(), user);
+
+            return GenericApiResponse.<Object>builder()
+                    .status(200)
+                    .message("Login Successful")
+                    .Data(response)
+                    .build();
         }
-
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        input.getEmail(),
-                        input.getPassword()
-                )
-        );
-        String token = jwtService.generateToken(user);
-        LoginResponse response = new LoginResponse(token, jwtService.getJwtExpiration(), user);
-
-        return  GenericApiResponse.<LoginResponse>builder()
-                .status(200)
-                .message("Login Successful")
-                .Data(response)
-                .build();
+        catch (Exception e){
+            return GenericApiResponse.<Object>builder()
+                    .status(500)
+                    .message("Login failed: ")
+                    .Data(e.getMessage())
+                    .build();
+        }
 
     }
 
-//    public GenericApiResponse<Object> login(@RequestBody LoginUserDTO loginUserDTO){
-//
-//    }
+    private GenericApiResponse<Object> invalidCredentialsResponse() {
+        return GenericApiResponse.<Object>builder()
+                .status(401)
+                .message("Invalid email or password.")
+                .Data(Collections.emptyMap())
+                .build();
+    }
 
 
     public GenericApiResponse<String> verifyUser(VerifyUserDTO input){
