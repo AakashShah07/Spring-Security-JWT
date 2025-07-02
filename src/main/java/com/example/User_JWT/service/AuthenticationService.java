@@ -1,15 +1,19 @@
 package com.example.User_JWT.service;
 
 import com.example.User_JWT.dto.*;
+import com.example.User_JWT.model.Role;
 import com.example.User_JWT.model.User;
 import com.example.User_JWT.repository.UserRepository;
+import com.example.User_JWT.responses.LoginResponse;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -19,25 +23,42 @@ import java.util.Random;
 @RequiredArgsConstructor
 public class AuthenticationService {
 
-    private final UserRepository userRepository;
+    @Autowired
+    UserRepository userRepository;
 
-    private final PasswordEncoder passwordEncoder;
+    @Autowired
+    PasswordEncoder passwordEncoder;
 
-    private final AuthenticationManager authenticationManager;
+    @Autowired
+    AuthenticationManager authenticationManager;
 
-    private final EmailService emailService;
+    @Autowired
+    EmailService emailService;
+
+    @Autowired
+    JwtService jwtService;
 
 
     public GenericApiResponse<Object> signup(RegisterUserDTO input)
     {
         try {
-            User user = new User(input.getUsername(), input.getEmail(), passwordEncoder.encode(input.getPassword()));
-            user.setVerificationCode(generateVerificationCode());
+            User user =  User.builder()
+                    .username(input.getUsername())
+                            .email(input.getEmail())
+                                    .password(passwordEncoder.encode(input.getPassword()))
+                                            .enabled(false)
+                    .verificationCode(generateVerificationCode())
+                    .verificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15))
+                    .role(Role.USER)
+                    .build();
 
-            user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
-            user.setEnabled(false);
+//            user.setVerificationCode(generateVerificationCode());
+//
+//            user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
+//            user.setEnabled(false);
             sendVerificationCode(user);
             User savedUser = userRepository.save(user);
+
             UserResponseDTO responseDTO = UserResponseDTO.builder()
                     .id(savedUser.getId())
                     .username(savedUser.getUsername())
@@ -57,7 +78,7 @@ public class AuthenticationService {
         }
     }
 
-    public User authenticate(LoginUserDTO input){
+    public GenericApiResponse<LoginResponse> authenticate(LoginUserDTO input){
         User user = userRepository.findByEmail(input.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -72,9 +93,20 @@ public class AuthenticationService {
                         input.getPassword()
                 )
         );
-        return user ;
+        String token = jwtService.generateToken(user);
+        LoginResponse response = new LoginResponse(token, jwtService.getJwtExpiration(), user);
+
+        return  GenericApiResponse.<LoginResponse>builder()
+                .status(200)
+                .message("Login Successful")
+                .Data(response)
+                .build();
 
     }
+
+//    public GenericApiResponse<Object> login(@RequestBody LoginUserDTO loginUserDTO){
+//
+//    }
 
 
     public GenericApiResponse<String> verifyUser(VerifyUserDTO input){

@@ -1,5 +1,6 @@
 package com.example.User_JWT.responses;
 
+import com.example.User_JWT.model.User;
 import lombok.*;
 
 @Data
@@ -9,6 +10,7 @@ public class LoginResponse {
 
     private String token ;
     private long expiration ;
+    private User user;
 
 
 }

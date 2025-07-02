@@ -32,15 +32,7 @@ public class AuthenticationController {
 
     @PostMapping("/login")
     public ResponseEntity<GenericApiResponse<LoginResponse>> authenticate(@RequestBody LoginUserDTO loginUserDTO){
-        User authUSer = authenticationService.authenticate(loginUserDTO);
-        String jwtToken = jwtService.generateToken(authUSer);
-        LoginResponse loginResponse = new LoginResponse(jwtToken, jwtService.getJwtExpiration());
-        GenericApiResponse<LoginResponse> response = GenericApiResponse.<LoginResponse>builder()
-                .status(200)
-                .message("Login Successful")
-                .Data(loginResponse)
-                .build();
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(authenticationService.authenticate(loginUserDTO));
     }
 
     //Verify using email Token
