@@ -1,6 +1,8 @@
 package com.example.User_JWT.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -13,6 +15,8 @@ import java.util.List;
 @Document(collection = "users")
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class User implements UserDetails {
 
     @Id
@@ -22,16 +26,21 @@ public class User implements UserDetails {
     private String email;
     private String password;
     private boolean enabled;
+
+    private String phoneNumber;
+    private LocalDateTime dateOfBirth;
+    private String gender;
+    private String prakritiType;
+    private int oxygenPoints;
+
+    private Role role;
+
     private String verificationCode;
     private LocalDateTime verificationCodeExpiresAt;
 
-    public User(String username, String email, String password) {
-        this.username = username;
-        this.email = email;
-        this.password = password;
+    public User(String username, String email, String encode) {
     }
 
-    public User() {}
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
