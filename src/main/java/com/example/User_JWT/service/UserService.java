@@ -1,5 +1,6 @@
 package com.example.User_JWT.service;
 
+import com.example.User_JWT.dto.GenericApiResponse;
 import com.example.User_JWT.model.User;
 import com.example.User_JWT.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,5 +22,12 @@ public class UserService {
         return users ;
     }
 
+    public GenericApiResponse<Object> updateDetails(String updateRequest, String token){
+          return GenericApiResponse.builder()
+                .status(200)
+                .message("Token checking")
+                .Data("tata")
+                .build();
+    }
 
 }

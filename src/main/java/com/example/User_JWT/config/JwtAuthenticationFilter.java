@@ -1,12 +1,15 @@
 package com.example.User_JWT.config;
 
+import com.example.User_JWT.dto.GenericApiResponse;
 import com.example.User_JWT.service.JwtService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,17 +27,19 @@ import java.io.IOException;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final HandlerExceptionResolver handlerExceptionResolver;
+    @Autowired
+    HandlerExceptionResolver handlerExceptionResolver;
 
-    private final JwtService jwtService;
+    @Autowired
+    JwtService jwtService;
 
-    private final UserDetailsService userDetailsService;
+    @Autowired
+    UserDetailsService userDetailsService;
 
-    public JwtAuthenticationFilter(HandlerExceptionResolver handlerExceptionResolver, JwtService jwtService, UserDetailsService userDetailsService) {
-        this.handlerExceptionResolver = handlerExceptionResolver;
-        this.jwtService = jwtService;
-        this.userDetailsService = userDetailsService;
-    }
+    @Autowired
+    ObjectMapper objectMapper;
+
+
 
     @Override
     protected void doFilterInternal(
@@ -71,8 +76,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
 
         } catch (Exception e) {
-            handlerExceptionResolver.resolveException(request, response, null, e) ;
-        }
+            System.out.println("Error is "+e.getMessage());
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Unauthorized: " + e.getMessage());        }
 
     }
 

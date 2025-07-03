@@ -77,7 +77,7 @@ public class AuthenticationService {
     }
 
 
-//    TODO: Add Captcha and rate limiting
+//    TODO: Add Captcha, rate limiting and Role based token
     public GenericApiResponse<Object> authenticate(LoginUserDTO input){
         try{
             Optional<User> optionalUser = userRepository.findByEmail(input.getEmail());
